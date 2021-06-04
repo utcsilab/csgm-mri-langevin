@@ -1,0 +1,20 @@
+torch #==1.7.1
+torchvision
+click
+gdown
+psutil
+Pillow
+scipy
+h5py
+tensorboard
+requests
+tqdm
+pyspng
+ninja
+imageio-ffmpeg==0.4.3
+torchinfo
+sigpy
+comet_ml
+hydra-core
+opencv-python
+matplotlib
