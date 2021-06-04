@@ -17,12 +17,10 @@ from dataloaders import BrainMRIDataset, UndersampledRSS, MVU_Estimator, MVU_Est
 import multiprocessing
 from training.networks import Generator
 import PIL.Image
-# import cv2
 from torch.utils.data.distributed import DistributedSampler
 from utils import *
 
 from ncsnv2.models import get_sigmas
-# from ncsnv2.datasets import get_dataset, data_transform, inverse_data_transform
 from ncsnv2.models.ema import EMAHelper
 from ncsnv2.models.ncsnv2 import NCSNv2Deepest
 import argparse
@@ -213,8 +211,7 @@ def mp_run(rank, config, project_dir, working_dir, files):
     np.random.seed(config['seed'])
     logger.info(f'Logging to {working_dir}')
     if rank == 0 and not config['debug']:
-        api_key = 'zBcl0hxrIIFJSJAhKa4P48TA0' if config['user']=='ajil' else 'qEabS48Bs8kPfDWAe87AOmpHQ'
-        # project_name = 'langevin-mri-dataloader-fix'
+        api_key = 'Z86Oz16wGA1wEDpxzMEDIPDzJ'
         if config['is_knees']:
             project_name = 'langevin-mri-knees'
         elif config['is_abdomen']:
@@ -298,15 +295,13 @@ def mp_run(rank, config, project_dir, working_dir, files):
                     mvue: one complex image reconstructed using the coil images and the sensitivity maps
                     maps: sensitivity maps for each one of the coils
         '''
-        # if index < 2:
-        #     continue
 
         ref, mvue, maps, mask = sample['ground_truth'], sample['mvue'], sample['maps'], sample['mask']
-        if config['batch_size'] == 1 and config['is_knees']:
-            exp_name = sample['mvue_file'][0].split('/')[-1] + '|langevin|' + f'slide_idx_{sample["slice_idx"][0].item()}'
-            # if exp_name != 'file1000425.h5|langevin|slide_idx_22':
-            if exp_name != 'file1002455.h5|langevin|slide_idx_26':
-                continue
+        # uncomment for meniscus tears
+        # exp_name = sample['mvue_file'][0].split('/')[-1] + '|langevin|' + f'slide_idx_{sample["slice_idx"][0].item()}'
+        # # if exp_name != 'file1000425.h5|langevin|slide_idx_22':
+        # if exp_name != 'file1002455.h5|langevin|slide_idx_26':
+        #     continue
         xx = (ref==0)
         langevin_optimizer.num_coils = ref.shape[1]
         print(ref.shape[1])
@@ -322,21 +317,11 @@ def mp_run(rank, config, project_dir, working_dir, files):
 
 
         exp_names = []
-        #run = False
         for batch_idx in range(config['batch_size']):
 
             exp_name = sample['mvue_file'][batch_idx].split('/')[-1] + '|langevin|' + f'slide_idx_{sample["slice_idx"][batch_idx].item()}'
             exp_names.append(exp_name)
             print(exp_name)
-            #if config['is_knees']:
-            #    if exp_name != 'file1000000.h5|langevin|slide_idx_20':
-            #        continue
-            #    else:
-            #        run = True
-            # if exp_name != 'file1000031.h5|langevin|slide_idx_25':
-            #     continue
-            # if exp_name != 'file_brain_AXT2_210_2100065.h5|langevin|slide_idx_4':
-            #     continue
             if config['save_images']:
                 file_name = f'{exp_name}_R={config["R"]}_estimated_mvue.jpg'
                 save_images(estimated_mvue[batch_idx:batch_idx+1].abs().flip(-2), file_name, normalize=True)
@@ -366,8 +351,6 @@ def mp_run(rank, config, project_dir, working_dir, files):
                 for j in range(config['repeat']):
                     torch.save(outputs[j], f'{exp_name}_R={config["R"]}_sample={j}_outputs.pt')
 
-            # if index % config['save_dataloader_every'] == 0:
-            #     torch.save(loader, f'{index}_{exp_name}_dataloader.pth')
         if index >= 0:
             break
 
