@@ -1,4 +1,4 @@
-user: ajil
+user: anonymous-bobo-neurips21
 model_type: ncsnv2
 seed: 42
 device: cuda
