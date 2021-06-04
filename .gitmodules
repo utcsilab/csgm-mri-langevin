@@ -1,0 +1,3 @@
+[submodule "ncsnv2"]
+	path = ncsnv2
+	url = https://github.com/ermongroup/ncsnv2.git
