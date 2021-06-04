@@ -23,8 +23,6 @@ import warnings
 import pickle
 import re
 import copy
-import dnnlib
-from torch_utils import misc
 from torch.optim import Adam
 
 class SphericalOptimizer():

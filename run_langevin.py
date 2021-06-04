@@ -15,7 +15,6 @@ import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel as DDP
 from dataloaders import BrainMRIDataset, UndersampledRSS, MVU_Estimator, MVU_Estimator_Knees, MVU_Estimator_Stanford_Knees, MVU_Estimator_Abdomen
 import multiprocessing
-from training.networks import Generator
 import PIL.Image
 from torch.utils.data.distributed import DistributedSampler
 from utils import *
