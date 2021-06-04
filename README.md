@@ -25,5 +25,7 @@ NOTE: Please run **all** commands from the root directory of the repository, i.e
 1. Stanford knees:
 ```python run_langevin.py +configs=run_langevin_stanford_knees batch_size=24```
 
+NOTE: all experiments and reconstructions can be viewed at this [link](https://www.comet.ml/anonymous-bobo-neurips21#projects)
+
 To run different sampling patterns and acceleration, do
 ```python run_langevin.py pattern=random orientation=horizontal R=8```
