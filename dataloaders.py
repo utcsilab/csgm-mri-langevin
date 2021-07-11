@@ -16,7 +16,7 @@ import sys
 
 
 class MVU_Estimator_Brain(Dataset):
-    def __init__(self, file_list, mvue_dir, maps_dir, raw_dir,
+    def __init__(self, file_list, maps_dir, input_dir,
                  project_dir='./',
                  R=1,
                  image_size=(384,384),
@@ -26,9 +26,8 @@ class MVU_Estimator_Brain(Dataset):
         # Attributes
         self.project_dir = project_dir
         self.file_list    = file_list
-        self.mvue_dir     = mvue_dir
         self.maps_dir     = maps_dir
-        self.raw_dir      = raw_dir
+        self.input_dir      = input_dir
         self.image_size = image_size
         self.R            = R
         self.pattern      = pattern
@@ -37,13 +36,9 @@ class MVU_Estimator_Brain(Dataset):
         # Access meta-data of each scan to get number of slices
         self.num_slices = np.zeros((len(self.file_list,)), dtype=int)
         for idx, file in enumerate(self.file_list):
-            mvue_file = os.path.join(self.mvue_dir, os.path.basename(file))
+            input_file = os.path.join(self.input_dir, os.path.basename(file))
             with h5py.File(os.path.join(self.project_dir, mvue_file), 'r') as data:
-                try:
-                    self.num_slices[idx] = int(data.attrs['num_slices'])
-                except :
-                    print("Unexpected error:", sys.exc_info()[0])
-                    self.num_slices[idx] = int(np.array(data['kspace']).shape[0])
+                self.num_slices[idx] = int(np.array(data['kspace']).shape[0])
 
         # Create cumulative index for mapping
         self.slice_mapper = np.cumsum(self.num_slices) - 1 # Counts from '0'
@@ -101,13 +96,6 @@ class MVU_Estimator_Brain(Dataset):
         slice_idx = int(idx) if scan_idx == 0 else \
             int(idx - self.slice_mapper[scan_idx] + self.num_slices[scan_idx] - 1)
 
-        # Load MVUE slice from specific scan
-        mvue_file = os.path.join(self.mvue_dir,
-                                 os.path.basename(self.file_list[scan_idx]))
-        # with h5py.File(os.path.join(self.project_dir, mvue_file), 'r') as data:
-        #     # Get MVUE
-        #     mvue = np.asarray(data['mvue'][slice_idx])
-
         # Load maps for specific scan and slice
         maps_file = os.path.join(self.maps_dir,
                                  os.path.basename(self.file_list[scan_idx]))
@@ -116,7 +104,7 @@ class MVU_Estimator_Brain(Dataset):
             maps = np.asarray(data['s_maps'][slice_idx])
 
         # Load raw data for specific scan and slice
-        raw_file = os.path.join(self.raw_dir,
+        raw_file = os.path.join(self.input_dir,
                                 os.path.basename(self.file_list[scan_idx]))
         with h5py.File(os.path.join(self.project_dir, raw_file), 'r') as data:
             # Get maps
@@ -187,7 +175,7 @@ class MVU_Estimator_Brain(Dataset):
         return sample
 
 class MVU_Estimator_Knees(Dataset):
-    def __init__(self, file_list, maps_dir, raw_dir,
+    def __init__(self, file_list, maps_dir, input_dir,
                  project_dir='./',
                  R=1,
                  image_size=(320, 320),
@@ -199,7 +187,7 @@ class MVU_Estimator_Knees(Dataset):
         self.file_list    = file_list
         self.acs_size     = acs_size
         self.maps_dir     = maps_dir
-        self.raw_dir      = raw_dir
+        self.input_dir      = input_dir
         self.R = R
         self.image_size = image_size
         self.pattern      = pattern
@@ -208,7 +196,7 @@ class MVU_Estimator_Knees(Dataset):
         # Access meta-data of each scan to get number of slices
         self.num_slices = np.zeros((len(self.file_list,)), dtype=int)
         for idx, file in enumerate(self.file_list):
-            raw_file = os.path.join(self.raw_dir, os.path.basename(file))
+            raw_file = os.path.join(self.input_dir, os.path.basename(file))
             with h5py.File(os.path.join(self.project_dir, raw_file), 'r') as data:
                 value = data['ismrmrd_header'][()]
                 value = ET.fromstring(value)
@@ -295,7 +283,7 @@ class MVU_Estimator_Knees(Dataset):
             maps = np.asarray(data['s_maps'][slice_idx])
 
         # Load raw data for specific scan and slice
-        raw_file = os.path.join(self.raw_dir,
+        raw_file = os.path.join(self.input_dir,
                                 os.path.basename(self.file_list[scan_idx]))
         with h5py.File(os.path.join(self.project_dir, raw_file), 'r') as data:
             # Get maps
@@ -328,7 +316,7 @@ class MVU_Estimator_Knees(Dataset):
         mvue = get_mvue(gt_ksp.reshape((1,) + gt_ksp.shape), maps.reshape((1,) + maps.shape))
 
         # # Load MVUE slice from specific scan
-        mvue_file = os.path.join(self.raw_dir,
+        mvue_file = os.path.join(self.input_dir,
                                  os.path.basename(self.file_list[scan_idx]))
 
         # !!! Removed ACS-based scaling if handled on the outside
@@ -373,7 +361,7 @@ class MVU_Estimator_Knees(Dataset):
         return sample
 
 class MVU_Estimator_Stanford_Knees(Dataset):
-    def __init__(self, file_list, maps_dir, raw_dir,
+    def __init__(self, file_list, maps_dir, input_dir,
                  project_dir='./',
                  R=1,
                  image_size=(320,320),
@@ -384,7 +372,7 @@ class MVU_Estimator_Stanford_Knees(Dataset):
         self.project_dir = project_dir
         self.acs_size     = acs_size
         self.maps_dir     = maps_dir
-        self.raw_dir      = raw_dir
+        self.input_dir      = input_dir
         self.R = R
         self.image_size = image_size
         self.pattern      = pattern
@@ -395,7 +383,7 @@ class MVU_Estimator_Stanford_Knees(Dataset):
 
         # Access meta-data of each scan to get number of slices
         # self.maps_file = os.path.join(maps_dir, 'Stanford-Knee-Axial-Selected.h5')
-        # self.raw_file = os.path.join(raw_dir, 'Stanford-Knee-Axial-Selected.h5')
+        # self.raw_file = os.path.join(input_dir, 'Stanford-Knee-Axial-Selected.h5')
         # with h5py.File(os.path.join(self.project_dir, self.raw_file), 'r') as data:
         #     self.num_slices = np.array(data['kspace']).shape[0]
     @property
@@ -437,7 +425,7 @@ class MVU_Estimator_Stanford_Knees(Dataset):
         mvue = get_mvue(gt_ksp.reshape((1,) + gt_ksp.shape), maps.reshape((1,) + maps.shape))
 
         # # Load MVUE slice from specific scan
-        mvue_file = os.path.join(self.raw_dir,
+        mvue_file = os.path.join(self.input_dir,
                                  os.path.basename(self.file_list[scan_idx]))
 
         # !!! Removed ACS-based scaling if handled on the outside
@@ -464,7 +452,7 @@ class MVU_Estimator_Stanford_Knees(Dataset):
         return sample
 
 # class MVU_Estimator_Stanford_Knees(Dataset):
-#     def __init__(self, maps_dir, raw_dir,
+#     def __init__(self, maps_dir, input_dir,
 #                  project_dir='./',
 #                  R=1,
 #                  image_size=(320,320),
@@ -475,7 +463,7 @@ class MVU_Estimator_Stanford_Knees(Dataset):
 #         self.project_dir = project_dir
 #         self.acs_size     = acs_size
 #         self.maps_dir     = maps_dir
-#         self.raw_dir      = raw_dir
+#         self.input_dir      = input_dir
 #         self.R = R
 #         self.image_size = image_size
 #         self.pattern      = pattern
@@ -484,7 +472,7 @@ class MVU_Estimator_Stanford_Knees(Dataset):
 #         # Access meta-data of each scan to get number of slices
 #         self.num_slices = np.ones(18, dtype=int)
 #         self.maps_file = os.path.join(maps_dir, 'Stanford_maps_rotated.h5')
-#         self.raw_file = os.path.join(raw_dir, 'Stanford_knees.pkl')
+#         self.raw_file = os.path.join(input_dir, 'Stanford_knees.pkl')
 
 #     def __len__(self):
 #         return int(np.sum(self.num_slices)) # Total number of slices from all scans
@@ -557,7 +545,7 @@ class MVU_Estimator_Stanford_Knees(Dataset):
 #         mvue = get_mvue(gt_ksp.reshape((1,) + gt_ksp.shape), maps.reshape((1,) + maps.shape))
 
 #         # # Load MVUE slice from specific scan
-#         mvue_file = os.path.join(self.raw_dir,f'ge{idx+1}.h5')
+#         mvue_file = os.path.join(self.input_dir,f'ge{idx+1}.h5')
 
 #         # !!! Removed ACS-based scaling if handled on the outside
 #         scale_factor = 1.
@@ -601,7 +589,7 @@ class MVU_Estimator_Stanford_Knees(Dataset):
 #         return sample
 
 class MVU_Estimator_Abdomen(Dataset):
-    def __init__(self, maps_dir, raw_dir,
+    def __init__(self, maps_dir, input_dir,
                  project_dir='./',
                  R=1,
                  image_size=(158,320),
@@ -613,7 +601,7 @@ class MVU_Estimator_Abdomen(Dataset):
         self.project_dir = project_dir
         self.acs_size     = acs_size
         self.maps_dir     = maps_dir
-        self.raw_dir      = raw_dir
+        self.input_dir      = input_dir
         self.R = R
         self.image_size = image_size
         self.pattern      = pattern
@@ -622,7 +610,7 @@ class MVU_Estimator_Abdomen(Dataset):
 
         # Access meta-data of each scan to get number of slices
         self.maps_file = os.path.join(self.project_dir, maps_dir, 'data2.h5')
-        self.raw_file = os.path.join(self.project_dir, raw_dir, 'data2.h5')
+        self.raw_file = os.path.join(self.project_dir, input_dir, 'data2.h5')
         with h5py.File(self.raw_file, 'r') as f:
             self.num_slices = np.array(f['ksp']).shape[0]
 
@@ -720,7 +708,7 @@ class MVU_Estimator_Abdomen(Dataset):
         mvue = get_mvue(gt_ksp.reshape((1,) + gt_ksp.shape), maps.reshape((1,) + maps.shape))
 
         # # Load MVUE slice from specific scan
-        mvue_file = os.path.join(self.raw_dir,str(idx))
+        mvue_file = os.path.join(self.input_dir,str(idx))
 
         # !!! Removed ACS-based scaling if handled on the outside
         scale_factor = 1.

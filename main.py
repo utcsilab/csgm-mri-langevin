@@ -13,7 +13,7 @@ import logging
 import random
 import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel as DDP
-from dataloaders import BrainMRIDataset, UndersampledRSS, MVU_Estimator, MVU_Estimator_Knees, MVU_Estimator_Stanford_Knees, MVU_Estimator_Abdomen
+from dataloaders import MVU_Estimator_Brain, MVU_Estimator_Knees, MVU_Estimator_Stanford_Knees, MVU_Estimator_Abdomen
 import multiprocessing
 import PIL.Image
 from torch.utils.data.distributed import DistributedSampler
@@ -45,8 +45,6 @@ class LangevinOptimizer(torch.nn.Module):
         super().__init__()
 
         self.config = config
-        # if config['image_size'][0] != config['image_size'][1]:
-        #     raise Exception('Non-square images are not supported yet.')
 
         self.langevin_config = self._dict2namespace(self.config['langevin_config'])
         self.device = config['device']
@@ -112,20 +110,12 @@ class LangevinOptimizer(torch.nn.Module):
         pbar_labels = ['class', 'step_size', 'error', 'mean', 'max']
         n_steps_each = self.langevin_config.sampling.n_steps_each
         step_lr = self.langevin_config.sampling.step_lr
-        if self.config['no_maps']:
-            forward_operator = lambda x: MulticoilForwardMRINoMaps()(torch.complex(x[:, 0], x[:, 1]), batch_mri_mask)
-        else:
-            forward_operator = lambda x: MulticoilForwardMRI(self.config['orientation'])(torch.complex(x[:, 0], x[:, 1]), maps, batch_mri_mask)
+        forward_operator = lambda x: MulticoilForwardMRI(self.config['orientation'])(torch.complex(x[:, 0], x[:, 1]), maps, batch_mri_mask)
 
 
-        if self.config['no_maps']:
-            samples = torch.rand(self.num_coils,self.langevin_config.data.channels,
-                                     self.config['image_size'][0],
-                                     self.config['image_size'][1], device=self.device)
-        else:
-            samples = torch.rand(y[0].shape[0], self.langevin_config.data.channels,
-                                     self.config['image_size'][0],
-                                     self.config['image_size'][1], device=self.device)
+        samples = torch.rand(y[0].shape[0], self.langevin_config.data.channels,
+                                 self.config['image_size'][0],
+                                 self.config['image_size'][1], device=self.device)
 
         with torch.no_grad():
             for c in pbar:
@@ -136,32 +126,45 @@ class LangevinOptimizer(torch.nn.Module):
 
                 for s in range(n_steps_each):
                     noise = torch.randn_like(samples) * np.sqrt(step_size * 2)
+                    # get score from model
                     grad = self.score(samples, labels)
+
+                    # get measurements for current estimate
                     meas = forward_operator(normalize(samples, estimated_mvue))
-                    if self.config['no_maps']:
-                        meas_grad = torch.view_as_real(self._ifft(meas-ref) /(sigma**2)).permute(0,3,1,2)
-                    else:
-                        meas_grad = self.config['mse'] * torch.view_as_real(torch.sum(self._ifft(meas-ref) * torch.conj(maps), axis=1) /(sigma**2)).permute(0,3,1,2)
+                    # compute gradient, i.e., gradient = A_adjoint * ( y - Ax_hat )
+                    # here A_adjoint also involves the sensitivity maps, hence the pointwise multiplication
+                    # also convert to real value since the ``complex'' image is a real-valued two channel image
+                    meas_grad = self.config['mse'] * torch.view_as_real(torch.sum(self._ifft(meas-ref) * torch.conj(maps), axis=1) /(sigma**2)).permute(0,3,1,2)
+                    # re-normalize, since measuremenets are from a normalized estimate
                     meas_grad = unnormalize(meas_grad, estimated_mvue)
+                    # convert to float incase it somehow became double
                     meas_grad = meas_grad.type(torch.cuda.FloatTensor)
 
+                    # combine measurement gradient, prior gradient and noise
                     samples = samples + step_size * (grad - meas_grad) + noise
-                    # print("class: {}, step_size: {}, error {}, mean {}, max {}".format(c, step_size, (meas-ref).norm(), grad.abs().mean(), grad.abs().max()))
-                    # print(normalize(samples,estimated_mvue).abs().max(), normalize(samples, estimated_mvue).abs().min(), mvue.abs().max(), mvue.abs().min())
+
+                    # compute metrics
                     metrics = [c, step_size, (meas-ref).norm(), (grad-meas_grad).abs().mean(), (grad-meas_grad).abs().max()]
                     update_pbar_desc(pbar, metrics, pbar_labels)
+                    # if nan, break
                     if np.isnan((meas - ref).norm().cpu().numpy()):
                         return normalize(samples, estimated_mvue)
                 if self.config['save_images']:
                     if (c+1) % self.config['save_iter'] ==0 :
                         img_gen = normalize(samples, estimated_mvue)
                         to_display = torch.view_as_complex(img_gen.permute(0, 2, 3, 1).reshape(-1, self.config['image_size'][0], self.config['image_size'][1], 2).contiguous()).abs()
-                        if self.config['no_maps']:
-                            to_display = to_display.view(to_display.shape[0], 1, to_display.shape[1], to_display.shape[2])
-                        if not self.config['is_knees']:
+                        if config['anatomy'] == 'brain':
+                            # flip vertically
                             to_display = to_display.flip(-2)
-                        else:
+                        elif config['anatomy'] == 'knees':
+                            # flip vertically and horizontally
                             to_display = to_display.flip(-2)
+                            to_display = to_display.flip(-1)
+                        elif config['anatomy'] == 'stanford_knees':
+                            # do nothing
+                            pass
+                        elif config['anatomy'] == 'abdomen':
+                            # flip horizontally
                             to_display = to_display.flip(-1)
                         for i, exp_name in enumerate(self.config['exp_names']):
                             if self.config['repeat'] == 1:
@@ -176,6 +179,7 @@ class LangevinOptimizer(torch.nn.Module):
                                     if self.experiment is not None:
                                         self.experiment.log_image(file_name)
 
+                        # uncomment below if you want to save intermediate samples, they are logged to CometML in the interest of saving space
                         # intermediate_out = samples
                         # intermediate_out.requires_grad = False
                         # self.gen_outs.append(intermediate_out)
@@ -194,6 +198,7 @@ class LangevinOptimizer(torch.nn.Module):
         for i in range(y[0].shape[0]):
             outputs_ = {
                 'mvue': mvue[i:i+1],
+                # uncomment below if you want to return intermediate output
                 # 'gen_outs': self.gen_outs
             }
             outputs.append(outputs_)
@@ -210,15 +215,9 @@ def mp_run(rank, config, project_dir, working_dir, files):
     np.random.seed(config['seed'])
     logger.info(f'Logging to {working_dir}')
     if rank == 0 and not config['debug']:
+        # todo
         api_key = 'Z86Oz16wGA1wEDpxzMEDIPDzJ'
-        if config['is_knees']:
-            project_name = 'langevin-mri-knees'
-        elif config['is_abdomen']:
-            project_name = 'langevin-mri-abdomen'
-        elif config['is_stanford_knees']:
-            project_name = 'langevin-mri-stanford-knees'
-        else:
-            project_name = 'langevin-mri-brains'
+        project_name = config['anatomy']
         experiment = Experiment(api_key,
                                 project_name=project_name,
                                 auto_output_logging='simple')
@@ -228,27 +227,28 @@ def mp_run(rank, config, project_dir, working_dir, files):
         experiment = None
 
     config['device'] = rank
-    if config['is_knees']:
+    # load appropriate dataloader
+    if config['anatomy'] == 'knees':
         dataset = MVU_Estimator_Knees(files,
-                            raw_dir=config['raw_dir'],
+                            input_dir=config['input_dir'],
                             maps_dir=config['maps_dir'],
                             project_dir=project_dir,
                             image_size = config['image_size'],
                             R=config['R'],
                             pattern=config['pattern'],
                             orientation=config['orientation'])
-    elif config['is_stanford_knees']:
+    elif config['anatomy'] == 'stanford_knees':
         dataset = MVU_Estimator_Stanford_Knees(files,
-                            raw_dir=config['raw_dir'],
+                            input_dir=config['input_dir'],
                             maps_dir=config['maps_dir'],
                             project_dir=project_dir,
                             image_size = config['image_size'],
                             R=config['R'],
                             pattern=config['pattern'],
                             orientation=config['orientation'])
-    elif config['is_abdomen']:
+    elif config['anatomy'] == 'abdomen':
         dataset = MVU_Estimator_Abdomen(
-                            raw_dir=config['raw_dir'],
+                            input_dir=config['input_dir'],
                             maps_dir=config['maps_dir'],
                             project_dir=project_dir,
                             image_size = config['image_size'],
@@ -257,31 +257,27 @@ def mp_run(rank, config, project_dir, working_dir, files):
                             orientation=config['orientation'],
                             rotate=config['rotate'])
 
-    else:
+    elif config['anatomy'] == 'brain':
         dataset = MVU_Estimator_Brain(files,
-                                raw_dir=config['raw_dir'],
-                                mvue_dir=config['mvue_dir'],
+                                input_dir=config['input_dir'],
                                 maps_dir=config['maps_dir'],
                                 project_dir=project_dir,
                                 image_size = config['image_size'],
                                 R=config['R'],
                                 pattern=config['pattern'],
                                 orientation=config['orientation'])
+    else:
+        raise NotImplementedError('anatomy not implemented, please write dataloader to process kspace appropriately')
 
-
-    sampler = DistributedSampler(dataset, rank=rank, shuffle=False) if config['multiprocessing'] else None
+    sampler = DistributedSampler(dataset, rank=rank, shuffle=True) if config['multiprocessing'] else None
     torch.manual_seed(config['seed'])
     np.random.seed(config['seed'])
 
 
-    # loader = torch.utils.data.DataLoader(dataset=dataset,
-    #                                      batch_size=config['batch_size'],
-    #                                      sampler=sampler,
-    #                                      shuffle=True if sampler is None else False)
     loader = torch.utils.data.DataLoader(dataset=dataset,
                                          batch_size=config['batch_size'],
                                          sampler=sampler,
-                                         shuffle=False)
+                                         shuffle=True if sampler is None else False)
 
     langevin_optimizer = LangevinOptimizer(config, logger, project_dir, experiment=experiment)
     if config['multiprocessing']:
@@ -293,6 +289,7 @@ def mp_run(rank, config, project_dir, working_dir, files):
                     ref: one complex image per coil
                     mvue: one complex image reconstructed using the coil images and the sensitivity maps
                     maps: sensitivity maps for each one of the coils
+                    mask: binary valued kspace mask
         '''
 
         ref, mvue, maps, mask = sample['ground_truth'], sample['mvue'], sample['maps'], sample['mask']
@@ -301,9 +298,6 @@ def mp_run(rank, config, project_dir, working_dir, files):
         # # if exp_name != 'file1000425.h5|langevin|slide_idx_22':
         # if exp_name != 'file1002455.h5|langevin|slide_idx_26':
         #     continue
-        xx = (ref==0)
-        langevin_optimizer.num_coils = ref.shape[1]
-        print(ref.shape[1])
 
         # move everything to cuda
         ref = ref.to(rank).type(torch.complex128)
@@ -336,11 +330,7 @@ def mp_run(rank, config, project_dir, working_dir, files):
         if config['repeat'] > 1:
             repeat = config['repeat']
             ref, mvue, maps, mask, estimated_mvue = ref.repeat(repeat,1,1,1), mvue.repeat(repeat,1,1,1), maps.repeat(repeat,1,1,1), mask.repeat(repeat,1), estimated_mvue.repeat(repeat,1,1,1)
-        #if run:
-        if config['no_maps']:
-            outputs = langevin_optimizer.sample((ref[0], mvue, maps, mask[0]))
-        else:
-            outputs = langevin_optimizer.sample((ref, mvue, maps, mask))
+        outputs = langevin_optimizer.sample((ref, mvue, maps, mask))
 
 
         for i, exp_name in enumerate(exp_names):
@@ -350,20 +340,21 @@ def mp_run(rank, config, project_dir, working_dir, files):
                 for j in range(config['repeat']):
                     torch.save(outputs[j], f'{exp_name}_R={config["R"]}_sample={j}_outputs.pt')
 
+        # todo: delete after testing
         if index >= 0:
             break
 
     if config['multiprocessing']:
         mp_cleanup()
 
-@hydra.main(config_name='configs/run_langevin')
+@hydra.main(config_path='configs')
 def main(config):
     """ setup """
     working_dir = os.getcwd()
     project_dir = hydra.utils.get_original_cwd()
 
-    folder_path = os.path.join(project_dir, config['input_folder'])
-    if config['is_stanford_knees']:
+    folder_path = os.path.join(project_dir, config['input_dir'])
+    if config['anatomy'] == 'stanford_knees':
         files = get_all_files(folder_path, pattern=f'*R{config["R"]}*.h5')
     else:
         files = get_all_files(folder_path, pattern='*.h5')

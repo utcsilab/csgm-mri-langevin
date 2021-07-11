@@ -167,43 +167,6 @@ class MulticoilForwardMRI(nn.Module):
         # Return downsampled k-space
         return ksp_coils
 
-# Multicoil forward operator for MRI
-class MulticoilForwardMRINoMaps(nn.Module):
-    def __init__(self):
-        super(MulticoilForwardMRINoMaps, self).__init__()
-        return
-
-    # Centered, orthogonal ifft in torch >= 1.7
-    def _ifft(self, x):
-        x = torch_fft.ifftshift(x, dim=(-2, -1))
-        x = torch_fft.ifft2(x, dim=(-2, -1), norm='ortho')
-        x = torch_fft.fftshift(x, dim=(-2, -1))
-        return x
-
-    # Centered, orthogonal fft in torch >= 1.7
-    def _fft(self, x):
-        x = torch_fft.fftshift(x, dim=(-2, -1))
-        x = torch_fft.fft2(x, dim=(-2, -1), norm='ortho')
-        x = torch_fft.ifftshift(x, dim=(-2, -1))
-        return x
-
-
-    '''
-    Inputs:
-     - image = [C, H, W] torch.complex64/128    in image domain
-     - mask  = [W] torch.complex64/128 w/    binary values
-    Outputs:
-     - ksp_coils = [C, H, W] torch.complex64/128 in kspace domain
-    '''
-    def forward(self, image, mask):
-        # Convert to k-space data
-        ksp_coils = self._fft(image)
-
-        # Mask k-space phase encode lines
-        ksp_coils = ksp_coils * mask[None, None, :]
-
-        # Return downsampled k-space
-        return ksp_coils
 
 # Generate a mask for MRI downsampling
 def get_mask(acs_lines=26, total_lines=384, R=1):
