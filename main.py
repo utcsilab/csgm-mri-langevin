@@ -258,7 +258,7 @@ def mp_run(rank, config, project_dir, working_dir, files):
                             rotate=config['rotate'])
 
     else:
-        dataset = MVU_Estimator(files,
+        dataset = MVU_Estimator_Brain(files,
                                 raw_dir=config['raw_dir'],
                                 mvue_dir=config['mvue_dir'],
                                 maps_dir=config['maps_dir'],
