@@ -13,116 +13,6 @@ from xml.etree import ElementTree as ET
 import sys
 
 
-class BrainMRIDataset(Dataset):
-    def __init__(self,
-        file_list,                  # Path to directory or zip.
-        project_dir='./',
-        resolution      = None, # Ensure specific resolution, None = highest available.
-        **super_kwargs,         # Additional arguments for the Dataset base class.
-    ):
-        # Attributes
-        self.file_list = sorted(file_list)
-        if len(self.file_list) == 0:
-            raise IOError('No image files found in the specified path')
-        self.project_dir = project_dir
-
-    @property
-    def num_slices(self):
-        num_slices = np.zeros((len(self.file_list,)), dtype=int)
-        for idx, file in enumerate(self.file_list):
-            with h5py.File(os.path.join(self.project_dir, file), 'r') as data:
-                num_slices[idx] = int(data.attrs['num_slices'])
-        return num_slices
-
-    @property
-    def slice_mapper(self):
-        return np.cumsum(self.num_slices) - 1 # Counts from '0'
-
-    def __len__(self):
-        return int(np.sum(self.num_slices)) # Total number of slices from all scans
-
-    def __getitem__(self, idx):
-        # Convert to numerical
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-
-        # Get scan and slice index
-        # First scan for which index is in the valid cumulative range
-        scan_idx = int(np.where((self.slice_mapper - idx) >= 0)[0][0])
-        # Offset from cumulative range
-        slice_idx = int(idx) if scan_idx == 0 else \
-            int(idx - self.slice_mapper[scan_idx] + self.num_slices[scan_idx] - 1)
-
-        # Load specific slice from specific scan
-        with h5py.File(os.path.join(self.project_dir, self.file_list[scan_idx]), 'r') as data:
-            # Get RSS and scaling factor
-            ref_rss      = np.asarray(data['reconstruction_rss'][slice_idx])
-            scale_factor = np.asarray(data['scale_factor'][slice_idx])
-
-        # Apply ACS-based instance scaling
-        ref_rss = ref_rss / scale_factor
-
-        sample = {
-                  'reconstruction_rss': ref_rss.astype(np.float32),
-                  'scale_factor': scale_factor.astype(np.float32),
-                  # Just for feedback
-                  'scan_idx': scan_idx,
-                  'slice_idx': slice_idx}
-        return sample['reconstruction_rss'].reshape(1, 384, 384)
-
-
-class UndersampledRSS(Dataset):
-    def __init__(self, file_list, project_dir='./'):
-        # Attributes
-        self.file_list  = file_list
-        self.project_dir = project_dir
-        # Access meta-data of each scan to get number of slices
-        self.num_slices = np.zeros((len(self.file_list,)), dtype=int)
-        for idx, file in enumerate(self.file_list):
-            with h5py.File(os.path.join(project_dir, file), 'r') as data:
-                self.num_slices[idx] = int(data.attrs['num_slices'])
-
-        # Create cumulative index for mapping
-        self.slice_mapper = np.cumsum(self.num_slices) - 1 # Counts from '0'
-
-    def __len__(self):
-        return int(np.sum(self.num_slices)) # Total number of slices from all scans
-
-    def __getitem__(self, idx):
-        # Convert to numerical
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-
-        # Get scan and slice index
-        # First scan for which index is in the valid cumulative range
-        scan_idx = int(np.where((self.slice_mapper - idx) >= 0)[0][0])
-        # Offset from cumulative range
-        slice_idx = int(idx) if scan_idx == 0 else \
-            int(idx - self.slice_mapper[scan_idx] + self.num_slices[scan_idx] - 1)
-
-        # Load specific slice from specific scan
-        with h5py.File(os.path.join(self.project_dir, self.file_list[scan_idx]), 'r') as data:
-            # Get RSS and scaling factor
-            ref_rss      = np.asarray(data['reconstruction_rss'][slice_idx])
-            down_rss     = np.asarray(data['downsampled_rss'][slice_idx])
-            acceleration = np.asarray(data['acceleration'])
-            scale_factor = np.asarray(data['scale_factor'][slice_idx])
-
-        # Apply ACS-based instance scaling to both GT and DS
-        ref_rss  = ref_rss / scale_factor
-        down_rss = down_rss / scale_factor
-
-        sample = {
-                  'ref_rss': ref_rss.astype(np.float32),
-                  'down_rss': down_rss.astype(np.float32),
-                  'acceleration': acceleration,
-                  'scale_factor': scale_factor.astype(np.float32),
-                  # Just for feedback
-                  'scan_idx': scan_idx,
-                  'slice_idx': slice_idx}
-
-        return sample['ref_rss'].reshape(1, 384, 384), sample['down_rss'].reshape(1, 384, 384)
-
 
 
 class MVU_Estimator(Dataset):
@@ -231,7 +121,7 @@ class MVU_Estimator(Dataset):
         with h5py.File(os.path.join(self.project_dir, raw_file), 'r') as data:
             # Get maps
             gt_ksp = np.asarray(data['kspace'][slice_idx])
-        # Crop extra lines and reduce FoV by half in readout
+        # Crop extra lines and reduce FoV in phase-encode
         gt_ksp = sp.resize(gt_ksp, (
             gt_ksp.shape[0], gt_ksp.shape[1], self.image_size[1]))
 
