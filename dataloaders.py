@@ -15,7 +15,7 @@ import sys
 
 
 
-class MVU_Estimator(Dataset):
+class MVU_Estimator_Brain(Dataset):
     def __init__(self, file_list, mvue_dir, maps_dir, raw_dir,
                  project_dir='./',
                  R=1,
@@ -190,7 +190,7 @@ class MVU_Estimator_Knees(Dataset):
     def __init__(self, file_list, maps_dir, raw_dir,
                  project_dir='./',
                  R=1,
-                 image_size=(384, 384),
+                 image_size=(320, 320),
                  acs_size=26,
                  pattern='random',
                  orientation='vertical'):
