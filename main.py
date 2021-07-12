@@ -24,7 +24,6 @@ from ncsnv2.models.ema import EMAHelper
 from ncsnv2.models.ncsnv2 import NCSNv2Deepest
 import argparse
 
-
 def normalize(gen_img, estimated_mvue):
     '''
         Estimate mvue from coils and normalize with 99% percentile.
@@ -153,19 +152,21 @@ class LangevinOptimizer(torch.nn.Module):
                     if (c+1) % self.config['save_iter'] ==0 :
                         img_gen = normalize(samples, estimated_mvue)
                         to_display = torch.view_as_complex(img_gen.permute(0, 2, 3, 1).reshape(-1, self.config['image_size'][0], self.config['image_size'][1], 2).contiguous()).abs()
-                        if config['anatomy'] == 'brain':
+                        if self.config['anatomy'] == 'brain':
                             # flip vertically
                             to_display = to_display.flip(-2)
-                        elif config['anatomy'] == 'knees':
+                        elif self.config['anatomy'] == 'knees':
                             # flip vertically and horizontally
                             to_display = to_display.flip(-2)
                             to_display = to_display.flip(-1)
-                        elif config['anatomy'] == 'stanford_knees':
+                        elif self.config['anatomy'] == 'stanford_knees':
                             # do nothing
                             pass
-                        elif config['anatomy'] == 'abdomen':
+                        elif self.config['anatomy'] == 'abdomen':
                             # flip horizontally
                             to_display = to_display.flip(-1)
+                        else:
+                            pass
                         for i, exp_name in enumerate(self.config['exp_names']):
                             if self.config['repeat'] == 1:
                                 file_name = f'{exp_name}_R={self.config["R"]}_{c}.jpg'
@@ -350,6 +351,7 @@ def mp_run(rank, config, project_dir, working_dir, files):
 @hydra.main(config_path='configs')
 def main(config):
     """ setup """
+
     working_dir = os.getcwd()
     project_dir = hydra.utils.get_original_cwd()
 
