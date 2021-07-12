@@ -37,7 +37,7 @@ class MVU_Estimator_Brain(Dataset):
         self.num_slices = np.zeros((len(self.file_list,)), dtype=int)
         for idx, file in enumerate(self.file_list):
             input_file = os.path.join(self.input_dir, os.path.basename(file))
-            with h5py.File(os.path.join(self.project_dir, mvue_file), 'r') as data:
+            with h5py.File(os.path.join(self.project_dir, input_file), 'r') as data:
                 self.num_slices[idx] = int(np.array(data['kspace']).shape[0])
 
         # Create cumulative index for mapping
@@ -161,6 +161,9 @@ class MVU_Estimator_Brain(Dataset):
         else:
             raise NotImplementedError
 
+        ## name for mvue file
+        mvue_file = os.path.join(self.input_dir,
+                                 os.path.basename(self.file_list[scan_idx]))
         # Output
         sample = {
                   'mvue': mvue,
