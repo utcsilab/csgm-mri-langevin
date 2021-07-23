@@ -36,24 +36,25 @@ def main(input_dir, output_dir):
         #else:
         #    print( 'unrecognized contrast' )
         # Load specific slice from specific scan
+        basename = os.path.basename( file ) 
+        output_name = os.path.join( output_dir, basename )
+        if os.path.exists( output_name ):
+            continue
         with h5py.File(file, 'r') as data:
             #num_slices = int(data.attrs['num_slices'])
             kspace = np.array( data['kspace'] )
             s_maps = np.zeros( kspace.shape, dtype = kspace.dtype)
             num_slices = kspace.shape[0]
             num_coils = kspace.shape[1]
-            for slice_idx in range( 1 ): #range(num_slices):
+            for slice_idx in range( num_slices ):
                 gt_ksp = kspace[slice_idx]
                 s_maps_ind = bart(1, 'ecalib -m1 -W -c0', gt_ksp.transpose((1, 2, 0))[None,...]).transpose( (3, 1, 2, 0)).squeeze()
                 s_maps[ slice_idx ] = s_maps_ind
 
-            basename = os.path.basename( file ) 
-            output_name = os.path.join( output_dir, basename )
 
             h5 = h5py.File( output_name, 'w' )
             h5.create_dataset( 's_maps', data = s_maps )
             h5.close()
-        break
 
 
 
