@@ -17,8 +17,8 @@ image_size:
   - 384
 
 ## files
-input_dir: ./datasets/validation_cplx_scans/raw/
-maps_dir: ./datasets/validation_cplx_scans/maps/
+input_dir: ./datasets/brain_T2/
+maps_dir: ./datasets/brain_T2_maps/
 anatomy: brain
 
 ## Acceleration
