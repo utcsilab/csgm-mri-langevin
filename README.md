@@ -8,7 +8,6 @@ NOTE: Please run **all** commands from the root directory of the repository, i.e
 1. ```pip install -U pip```
 1. ```pip install -r requirements.txt```
 1. ```git submodule update --init --recursive```
-1. ```bash setup.sh```
 
 ## Install BART for sensitivity map estimation
 
