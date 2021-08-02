@@ -20,6 +20,13 @@ BART provides tools for processing MRI data. Our experiments require BART for es
 1. ```cd bart-0.6.00```
 1. ```make```
 
+## Download data and checkpoints
+
+1. ```gdown https://drive.google.com/uc?id=1vAIXf8n67yEAPmH2I9qiDWzmq9fGKPYL```
+1. ```tar -zxvf checkpoint.tar.gz```
+1. ```gdown https://drive.google.com/uc?id=1mpnV1iXid1PG0RaJswM6t9yI76b2IPxc```
+1. ```tar -zxvf datasets.tar.gz```
+
 ## Script for estimating sensitivity maps from data
 
 The script ```estimate_maps.py``` will estimate sensitivity maps. An example usage is
