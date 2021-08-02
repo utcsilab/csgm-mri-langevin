@@ -27,6 +27,8 @@ The script ```estimate_maps.py``` will estimate sensitivity maps. An example usa
 ```python estimate_maps.py --input-dir=datasets/brain_T2 --output-dir=datasets/brain_T2_maps```
 
 ## Example commands
+We provide configuration files in ```configs/``` that contain hyper-parameters used in our experiments. Here are example commands for using the configuration files.
+
 1. T2-Brains:
 ```python run_langevin.py +file=brain_T2```
 1. T1-Brains:
@@ -45,4 +47,8 @@ The script ```estimate_maps.py``` will estimate sensitivity maps. An example usa
 ```python run_langevin.py +file=brain_T2 pattern=random```
 1. To change acceleration factor:
 ```python run_langevin.py +file=brain_T2 R=8```
+
+## Plotting results
+We use CometML to save results. Please see ```plot-demo.ipynb``` for example reconstructions.
+
 
