@@ -3,7 +3,6 @@
 NOTE: Please run **all** commands from the root directory of the repository, i.e from ```mri-langevin/```
 
 ## Setup environment
----
 1. ```python -m venv env```
 1. ```source env/bin/activate```
 1. ```pip install -U pip```
@@ -12,27 +11,38 @@ NOTE: Please run **all** commands from the root directory of the repository, i.e
 1. ```bash setup.sh```
 
 ## Install BART for sensitivity map estimation
+
+BART provides tools for processing MRI data. Our experiments require BART for estimating sensitivity maps, and BART can be installed using the following commands.
+
 1. ```sudo apt-get install make gcc libfftw3-dev liblapacke-dev libpng-dev libopenblas-dev```
 1. ```wget https://github.com/mrirecon/bart/archive/v0.6.00.tar.gz```
 1. ```tar xzvf v0.6.00.tar.gz```
 1. ```cd bart-0.6.00```
 1. ```make```
 
-## Instructions for running individual experiments
+## Script for estimating sensitivity maps from data
+
+The script ```estimate_maps.py``` will estimate sensitivity maps. An example usage is
+
+```python estimate_maps.py --input-dir=datasets/brain_T2 --output-dir=datasets/brain_T2_maps```
+
+## Example commands
 1. T2-Brains:
-```python run_langevin.py batch_size=8```
+```python run_langevin.py +file=brain_T2```
 1. T1-Brains:
-```python run_langevin.py +configs=run_langevin_T1 batch_size=14```
+```python run_langevin.py +file=brain_T1```
 1. FLAIR-Brains:
-```python run_langevin.py +configs=run_langevin_FLAIR batch_size=16```
-1. fastMRI-Knees:
-```python run_langevin.py +configs=run_langevin_knees batch_size=16```
-1. abdomens:
-```python run_langevin.py +configs=run_langevin_abdomens batch_size=34```
+```python run_langevin.py +file=brain_FLAIR```
+1. fastMRI Knees:
+```python run_langevin.py +file=knees```
+1. Abdomens:
+```python run_langevin.py +file=abdomen```
 1. Stanford knees:
-```python run_langevin.py +configs=run_langevin_stanford_knees batch_size=24```
+```python run_langevin.py +file=stanford_knees```
+1. To run with horizontal measurements:
+```python run_langevin.py +file=brain_T2 orientation=horizontal```
+1. To run with random measurements:
+```python run_langevin.py +file=brain_T2 pattern=random```
+1. To change acceleration factor:
+```python run_langevin.py +file=brain_T2 R=8```
 
-NOTE: all experiments and reconstructions can be viewed at this [link](https://www.comet.ml/anonymous-bobo-neurips21#projects)
-
-To run different sampling patterns and acceleration, do
-```python run_langevin.py pattern=random orientation=horizontal R=8```
