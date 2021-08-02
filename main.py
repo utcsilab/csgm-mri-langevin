@@ -1,4 +1,4 @@
-from comet_ml import Experiment
+from comet_ml import OfflineExperiment, Experiment
 import torchvision
 import numpy as np
 import math
@@ -126,7 +126,7 @@ class LangevinOptimizer(torch.nn.Module):
                 for s in range(n_steps_each):
                     noise = torch.randn_like(samples) * np.sqrt(step_size * 2)
                     # get score from model
-                    grad = self.score(samples, labels)
+                    p_grad = self.score(samples, labels)
 
                     # get measurements for current estimate
                     meas = forward_operator(normalize(samples, estimated_mvue))
@@ -140,7 +140,7 @@ class LangevinOptimizer(torch.nn.Module):
                     meas_grad = meas_grad.type(torch.cuda.FloatTensor)
 
                     # combine measurement gradient, prior gradient and noise
-                    samples = samples + step_size * (grad - meas_grad) + noise
+                    samples = samples + step_size * (p_grad - meas_grad) + noise
 
                     # compute metrics
                     metrics = [c, step_size, (meas-ref).norm(), (grad-meas_grad).abs().mean(), (grad-meas_grad).abs().max()]
@@ -216,12 +216,19 @@ def mp_run(rank, config, project_dir, working_dir, files):
     np.random.seed(config['seed'])
     logger.info(f'Logging to {working_dir}')
     if rank == 0 and not config['debug']:
-        # todo
-        api_key = 'Z86Oz16wGA1wEDpxzMEDIPDzJ'
+        # uncomment the following to log the experiment offline
+        # will need to add api key to see experiments online
+        #api_key = None
+        #project_name = config['anatomy']
+        #experiment = Experiment(api_key,
+        #                        project_name=project_name,
+        #                        auto_output_logging='simple')
         project_name = config['anatomy']
-        experiment = Experiment(api_key,
+        experiment = OfflineExperiment(
                                 project_name=project_name,
-                                auto_output_logging='simple')
+                                auto_output_logging='simple',
+                                offline_directory="./outputs")
+
         experiment.log_parameters(config)
         pretty(config)
     else:
