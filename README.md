@@ -11,6 +11,13 @@ NOTE: Please run **all** commands from the root directory of the repository, i.e
 1. ```git submodule update --init --recursive```
 1. ```bash setup.sh```
 
+## Install BART for sensitivity map estimation
+1. ```sudo apt-get install make gcc libfftw3-dev liblapacke-dev libpng-dev libopenblas-dev```
+1. ```wget https://github.com/mrirecon/bart/archive/v0.6.00.tar.gz```
+1. ```tar xzvf v0.6.00.tar.gz```
+1. ```cd bart-0.6.00```
+1. ```make```
+
 ## Instructions for running individual experiments
 1. T2-Brains:
 ```python run_langevin.py batch_size=8```
