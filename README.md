@@ -36,23 +36,23 @@ The script ```estimate_maps.py``` will estimate sensitivity maps. An example usa
 We provide configuration files in ```configs/``` that contain hyper-parameters used in our experiments. Here are example commands for using the configuration files.
 
 1. T2-Brains:
-```python run_langevin.py +file=brain_T2```
+```python main.py +file=brain_T2```
 1. T1-Brains:
-```python run_langevin.py +file=brain_T1```
+```python main.py +file=brain_T1```
 1. FLAIR-Brains:
-```python run_langevin.py +file=brain_FLAIR```
+```python main.py +file=brain_FLAIR```
 1. fastMRI Knees:
-```python run_langevin.py +file=knees```
+```python main.py +file=knees```
 1. Abdomens:
-```python run_langevin.py +file=abdomen```
+```python main.py +file=abdomen```
 1. Stanford knees:
-```python run_langevin.py +file=stanford_knees```
+```python main.py +file=stanford_knees```
 1. To run with horizontal measurements:
-```python run_langevin.py +file=brain_T2 orientation=horizontal```
+```python main.py +file=brain_T2 orientation=horizontal```
 1. To run with random measurements:
-```python run_langevin.py +file=brain_T2 pattern=random```
+```python main.py +file=brain_T2 pattern=random```
 1. To change acceleration factor:
-```python run_langevin.py +file=brain_T2 R=8```
+```python main.py +file=brain_T2 R=8```
 
 ## Plotting results
 We use CometML to save results. Please see ```plot-demo.ipynb``` for example reconstructions.
