@@ -57,4 +57,43 @@ We provide configuration files in ```configs/``` that contain hyper-parameters u
 ## Plotting results
 We use CometML to save results. Please see ```plot-demo.ipynb``` for example reconstructions.
 
+## Citations
 
+If you find this repository useful, please consider citing the following papers:
+```
+
+@article{jalal2021instance,
+  title={Instance-Optimal Compressed Sensing via Posterior Sampling},
+  author={Jalal, Ajil and Karmalkar, Sushrut and Dimakis, Alexandros G and Price, Eric},
+  journal={arXiv preprint arXiv:2106.11438},
+  year={2021}
+}
+
+@inproceedings{jalal2021fairness,
+  title={Fairness for Image Generation with Uncertain Sensitive Attributes},
+  author={Jalal, Ajil and Karmalkar, Sushrut and Hoffmann, Jessica and Dimakis, Alex and Price, Eric},
+  booktitle={International Conference on Machine Learning},
+  pages={4721--4732},
+  year={2021},
+  organization={PMLR}
+}
+```
+
+Our code also uses prior work from the following papers, which must
+also be cited:
+```
+@inproceedings{song2019generative,
+  title={Generative modeling by estimating gradients of the data distribution},
+  author={Song, Yang and Ermon, Stefano},
+  booktitle={Advances in Neural Information Processing Systems},
+  pages={11918--11930},
+  year={2019}
+}
+
+@article{song2020improved,
+  title={Improved Techniques for Training Score-Based Generative Models},
+  author={Song, Yang and Ermon, Stefano},
+  journal={arXiv preprint arXiv:2006.09011},
+  year={2020}
+}
+```
