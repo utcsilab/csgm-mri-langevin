@@ -61,6 +61,12 @@ We use CometML to save results. Please see ```plot-demo.ipynb``` for example rec
 
 If you find this repository useful, please consider citing the following papers:
 ```
+@article{jalal2021robust,
+  title={Robust Compressed Sensing MRI with Deep Generative Priors},
+  author={Jalal, Ajil and Arvinte, Marius and Daras, Giannis and Price, Eric and Dimakis, Alexandros G and Tamir, Jonathan I},
+  journal={arXiv preprint arXiv:2108.01368},
+  year={2021}
+}
 
 @article{jalal2021instance,
   title={Instance-Optimal Compressed Sensing via Posterior Sampling},
