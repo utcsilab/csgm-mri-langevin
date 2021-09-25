@@ -119,7 +119,7 @@ class MVU_Estimator_Brain(Dataset):
                                     gt_ksp.shape[2]))
         gt_ksp = sp.fft(gt_ksp, axes=(-2,)) # Back to k-space
 
-        # Crop extra lines and reduce FoV by half in readout
+        # Crop extra lines and reduce FoV in phase-encode
         maps = sp.fft(maps, axes=(-2, -1)) # These are now maps in k-space
         maps = sp.resize(maps, (
             maps.shape[0], maps.shape[1], self.image_size[1]))
