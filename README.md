@@ -64,14 +64,14 @@ If you find this repository useful, please consider citing the following papers:
 @article{jalal2021robust,
   title={Robust Compressed Sensing MRI with Deep Generative Priors},
   author={Jalal, Ajil and Arvinte, Marius and Daras, Giannis and Price, Eric and Dimakis, Alexandros G and Tamir, Jonathan I},
-  journal={arXiv preprint arXiv:2108.01368},
+  journal={Advances in Neural Information Processing Systems},
   year={2021}
 }
 
 @article{jalal2021instance,
   title={Instance-Optimal Compressed Sensing via Posterior Sampling},
   author={Jalal, Ajil and Karmalkar, Sushrut and Dimakis, Alexandros G and Price, Eric},
-  journal={arXiv preprint arXiv:2106.11438},
+  journal={International Conference on Machine Learning},
   year={2021}
 }
 
