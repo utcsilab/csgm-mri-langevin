@@ -143,7 +143,7 @@ class LangevinOptimizer(torch.nn.Module):
                     samples = samples + step_size * (p_grad - meas_grad) + noise
 
                     # compute metrics
-                    metrics = [c, step_size, (meas-ref).norm(), (grad-meas_grad).abs().mean(), (grad-meas_grad).abs().max()]
+                    metrics = [c, step_size, (meas-ref).norm(), (p_grad-meas_grad).abs().mean(), (p_grad-meas_grad).abs().max()]
                     update_pbar_desc(pbar, metrics, pbar_labels)
                     # if nan, break
                     if np.isnan((meas - ref).norm().cpu().numpy()):
