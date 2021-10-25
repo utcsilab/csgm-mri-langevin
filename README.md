@@ -61,28 +61,20 @@ We use CometML to save results. Please see ```plot-demo.ipynb``` for example rec
 
 If you find this repository useful, please consider citing the following papers:
 ```
-@article{jalal2021robust,
+@inproceedings{jalal2021robust,
   title={Robust Compressed Sensing MRI with Deep Generative Priors},
   author={Jalal, Ajil and Arvinte, Marius and Daras, Giannis and Price, Eric and Dimakis, Alexandros G and Tamir, Jonathan I},
   journal={Advances in Neural Information Processing Systems},
   year={2021}
 }
 
-@article{jalal2021instance,
+@inproceedings{jalal2021instance,
   title={Instance-Optimal Compressed Sensing via Posterior Sampling},
   author={Jalal, Ajil and Karmalkar, Sushrut and Dimakis, Alexandros G and Price, Eric},
   journal={International Conference on Machine Learning},
   year={2021}
 }
 
-@inproceedings{jalal2021fairness,
-  title={Fairness for Image Generation with Uncertain Sensitive Attributes},
-  author={Jalal, Ajil and Karmalkar, Sushrut and Hoffmann, Jessica and Dimakis, Alex and Price, Eric},
-  booktitle={International Conference on Machine Learning},
-  pages={4721--4732},
-  year={2021},
-  organization={PMLR}
-}
 ```
 
 Our code uses prior work from the following papers, which must
