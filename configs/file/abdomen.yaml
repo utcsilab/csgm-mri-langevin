@@ -9,7 +9,10 @@ repeat: 1
 gen_ckpt: ncsnv2-mri-mvue/logs/mri-mvue/checkpoint_100000.pth
 
 ## weights of different losses
-mse: .01
+mse: 5.
+    
+## start from different noise level of langevin
+start_iter: 1155
 
 # can be decreased for super-resolution
 image_size:
@@ -53,8 +56,8 @@ langevin_config:
     sampling:
       batch_size: 1
       data_init: false
-      step_lr: 0.000009
-      n_steps_each: 3
+      step_lr: 5e-5
+      n_steps_each: 4
       ckpt_id: 5000
       final_only: true
       fid: false
@@ -97,7 +100,7 @@ langevin_config:
       ema_rate: 0.999
       spec_norm: false
       sigma_dist: geometric
-      sigma_end: 0.00066
+      sigma_end: 0.0066
       normalization: InstanceNorm++
       nonlinearity: elu
       ngf: 128

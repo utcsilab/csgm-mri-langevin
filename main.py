@@ -107,7 +107,6 @@ class LangevinOptimizer(torch.nn.Module):
 
         pbar = tqdm(range(self.langevin_config.model.num_classes), disable=(self.config['device'] != 0))
         pbar_labels = ['class', 'step_size', 'error', 'mean', 'max']
-        n_steps_each = self.langevin_config.sampling.n_steps_each
         step_lr = self.langevin_config.sampling.step_lr
         forward_operator = lambda x: MulticoilForwardMRI(self.config['orientation'])(torch.complex(x[:, 0], x[:, 1]), maps, batch_mri_mask)
 
@@ -118,6 +117,12 @@ class LangevinOptimizer(torch.nn.Module):
 
         with torch.no_grad():
             for c in pbar:
+                if c <= self.config['start_iter']:
+                    continue
+                if c <= 1800:
+                    n_steps_each = 3
+                else:
+                    n_steps_each = self.langevin_config.sampling.n_steps_each
                 sigma = self.sigmas[c]
                 labels = torch.ones(samples.shape[0], device=samples.device) * c
                 labels = labels.long()
@@ -133,11 +138,14 @@ class LangevinOptimizer(torch.nn.Module):
                     # compute gradient, i.e., gradient = A_adjoint * ( y - Ax_hat )
                     # here A_adjoint also involves the sensitivity maps, hence the pointwise multiplication
                     # also convert to real value since the ``complex'' image is a real-valued two channel image
-                    meas_grad = self.config['mse'] * torch.view_as_real(torch.sum(self._ifft(meas-ref) * torch.conj(maps), axis=1) /(sigma**2)).permute(0,3,1,2)
+                    meas_grad = torch.view_as_real(torch.sum(self._ifft(meas-ref) * torch.conj(maps), axis=1) ).permute(0,3,1,2)
                     # re-normalize, since measuremenets are from a normalized estimate
                     meas_grad = unnormalize(meas_grad, estimated_mvue)
                     # convert to float incase it somehow became double
                     meas_grad = meas_grad.type(torch.cuda.FloatTensor)
+                    meas_grad /= torch.norm(meas_grad)
+                    meas_grad *= torch.norm(grad)
+                    meas_grad *= self.config['mse']
 
                     # combine measurement gradient, prior gradient and noise
                     samples = samples + step_size * (p_grad - meas_grad) + noise
