@@ -143,8 +143,8 @@ class LangevinOptimizer(torch.nn.Module):
                     meas_grad = unnormalize(meas_grad, estimated_mvue)
                     # convert to float incase it somehow became double
                     meas_grad = meas_grad.type(torch.cuda.FloatTensor)
-                    meas_grad /= torch.norm(meas_grad)
-                    meas_grad *= torch.norm(grad)
+                    meas_grad /= torch.norm( meas_grad )
+                    meas_grad *= torch.norm( p_grad )
                     meas_grad *= self.config['mse']
 
                     # combine measurement gradient, prior gradient and noise
